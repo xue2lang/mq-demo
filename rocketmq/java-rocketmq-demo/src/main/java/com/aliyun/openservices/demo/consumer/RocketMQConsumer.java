@@ -18,6 +18,8 @@ package com.aliyun.openservices.demo.consumer;
 
 import com.aliyun.openservices.demo.MqConfig;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 import org.apache.rocketmq.acl.common.AclClientRPCHook;
 import org.apache.rocketmq.acl.common.SessionCredentials;
 import org.apache.rocketmq.client.AccessChannel;
@@ -39,6 +41,8 @@ public class RocketMQConsumer {
 
     public static void main(String[] args) throws MQClientException {
 
+        final AtomicLong atomicLong = new AtomicLong(0);
+
         /**
          * 创建Consumer，并开启消息轨迹
          * 如果不想开启消息轨迹，可以按照如下方式创建：
@@ -58,12 +62,23 @@ public class RocketMQConsumer {
 
             @Override
             public ConsumeConcurrentlyStatus consumeMessage(List<MessageExt> msgs, ConsumeConcurrentlyContext context) {
+                long l = atomicLong.incrementAndGet();
                 System.out.printf("%s Receive New Messages: %s %n", Thread.currentThread().getName(), msgs);
+                if (l % 10==0) {
+                    return ConsumeConcurrentlyStatus.RECONSUME_LATER;
+                }
+
                 return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
             }
         });
 
         consumer.start();
         System.out.printf("Consumer Started.%n");
+
+        try {
+            TimeUnit.HOURS.sleep(1);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
     }
 }

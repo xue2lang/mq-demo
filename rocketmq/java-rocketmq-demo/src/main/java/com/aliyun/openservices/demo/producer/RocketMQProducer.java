@@ -45,20 +45,23 @@ public class RocketMQProducer {
          */
         producer.setAccessChannel(AccessChannel.CLOUD);
         producer.setNamesrvAddr(MqConfig.NAMESRV_ADDR);
+        producer.setRetryTimesWhenSendFailed(2);
+        producer.setSendMsgTimeout(3000);
         producer.start();
 
-        for (int i = 0; i < 128; i++) {
+        for (int i = 0; i < 11; i++) {
             try {
 
                 Message msg = new Message(MqConfig.TOPIC,
                     MqConfig.TAG,
                     "Hello world".getBytes(RemotingHelper.DEFAULT_CHARSET));
                 SendResult sendResult = producer.send(msg);
-                System.out.printf("%s%n", sendResult);
+                System.out.printf(i+"--------%s%n", sendResult);
             } catch (Exception e) {
                 e.printStackTrace();
             }
         }
+
         producer.shutdown();
     }
 }

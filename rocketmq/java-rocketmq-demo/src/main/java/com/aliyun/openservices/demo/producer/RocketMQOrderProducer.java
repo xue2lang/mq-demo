@@ -48,9 +48,11 @@ public class RocketMQOrderProducer {
          */
         producer.setAccessChannel(AccessChannel.CLOUD);
         producer.setNamesrvAddr(MqConfig.NAMESRV_ADDR);
+        producer.setRetryTimesWhenSendFailed(3);
+        producer.setSendMsgTimeout(5000);
         producer.start();
 
-        for (int i = 0; i < 128; i++) {
+        for (int i = 0; i < 10; i++) {
             try {
                 int orderId = i % 10;
                 Message msg = new Message(MqConfig.ORDER_TOPIC,
@@ -67,7 +69,7 @@ public class RocketMQOrderProducer {
                     }
                 }, orderId);
 
-                System.out.printf("%s%n", sendResult);
+                System.out.printf(i+"-------%s%n", sendResult);
             } catch (Exception e) {
                 e.printStackTrace();
             }
