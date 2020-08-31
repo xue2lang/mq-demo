@@ -55,6 +55,7 @@ public class MQPullConsumerScheduleService {
       if (next.getKey().getTopic().equals(topic)) {
         if (!mqNewSet.contains(next.getKey())) {
           next.getValue().setCancelled(true);
+          //非当前topic的queue队列，移除任务列表
           it.remove();
         }
       }
@@ -62,8 +63,10 @@ public class MQPullConsumerScheduleService {
 
     for (MessageQueue mq : mqNewSet) {
       if (!this.taskTable.containsKey(mq)) {
+        //创建Runnable线程并存储到任务列表
         PullTaskImpl command = new PullTaskImpl(mq);
         this.taskTable.put(mq, command);
+        //周期性拉取消息
         this.scheduledThreadPoolExecutor.schedule(command, 0, TimeUnit.MILLISECONDS);
 
       }
@@ -132,6 +135,9 @@ public class MQPullConsumerScheduleService {
     this.defaultMQPullConsumer.setMessageModel(messageModel);
   }
 
+  /**
+   * 负载均衡时触发 方法 messageQueueChanged
+   */
   class MessageQueueListenerImpl implements MessageQueueListener {
     @Override
     public void messageQueueChanged(String topic, Set<MessageQueue> mqAll, Set<MessageQueue> mqDivided) {
@@ -170,11 +176,13 @@ public class MQPullConsumerScheduleService {
           try {
             pullTaskCallback.doPullTask(this.messageQueue, context);
           } catch (Throwable e) {
+            //若发生异常，则等待1秒再次执行
             context.setPullNextDelayTimeMillis(1000);
             log.error("doPullTask Exception", e);
           }
 
           if (!this.isCancelled()) {
+            //继续下一次拉取消息(此处可设置下一次延迟拉取的时间)
             MQPullConsumerScheduleService.this.scheduledThreadPoolExecutor.schedule(this,
                 context.getPullNextDelayTimeMillis(), TimeUnit.MILLISECONDS);
           } else {
